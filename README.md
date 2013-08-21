@@ -26,13 +26,20 @@ You'll need to have the following apps installed to build and run 'sensors':
 
 Unpack and run: 
 
-$ make sensors
+```
+ $ make sensors
+```
+Load coretemp.ko module if it supports your CPU:
 
-
+```
+ # kldload coretemp
+```
 
 USAGE:
 
-$ ./sensors [delay]
+```
+ $ ./sensors [delay]
+```
 
  delay - is a refresh time in seconds.
 
@@ -40,8 +47,8 @@ $ ./sensors [delay]
 
 BUGS:
 
-- Tray status icon is a stub. Yet. Bear with it :)
-- Support for different hardware needs testing.
+- [ ] Tray status icon is a stub. Yet. Bear with it :)
+- [ ] Support for different hardware needs testing.
 
 
 
