@@ -17,7 +17,7 @@ INSTALLATION:
 You'll need to have the following apps installed to build and run 'sensors':
 
 - make
-- cc/clang
+- gcc/clang
 - pkgconf
 - pango
 - cairo
