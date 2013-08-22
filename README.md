@@ -27,7 +27,7 @@ You'll need to have the following apps installed to build and run 'sensors':
 Unpack and run: 
 
 ```
- $ make sensors
+ $ make 
 ```
 Load coretemp.ko module if it supports your CPU:
 
