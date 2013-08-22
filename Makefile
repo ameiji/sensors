@@ -1,19 +1,21 @@
-APP=sensors
+PROG = sensors
 
-CC=clang
+SRCS = sensors.c sensors.h
 
-CFLAGS=-O -std=c99
+CFLAGS = -O -std=c99
 
-BDECFLAGS=     -W -Wall -ansi -pedantic -Wbad-function-cast -Wcast-align \
+BDECFLAGS =     -W -Wall -ansi -pedantic -Wbad-function-cast -Wcast-align \
                -Wcast-qual -Wchar-subscripts -Winline \
                -Wmissing-prototypes -Wnested-externs -Wpointer-arith \
                -Wredundant-decls -Wshadow -Wstrict-prototypes -Wwrite-strings
 
-GTK_FLAGS	=`pkg-config --libs --cflags gtk+-2.0`
+GTK_FLAGS = `pkg-config --libs --cflags gtk+-2.0`
 
-CFLAGS	+=${BDECFLAGS} ${GTK_FLAGS}
+CFLAGS += ${BDECFLAGS} ${GTK_FLAGS}
 
-INSTALL_DIR	= /usr/local/bin
+INSTALL_DIR = /usr/local/bin
 
+
+.include <bsd.prog.mk>
 
 
