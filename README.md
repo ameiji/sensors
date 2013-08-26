@@ -65,9 +65,8 @@ Please see the LICENSE file provided with this code.
 
 ICONS BY
 chrisbanks2
-http://www.iconarchive.com/artist/chrisbanks2.html
-(License: CC Attribution-Noncommercial-No Derivate 3.0)
 
-
+	http://www.iconarchive.com/artist/chrisbanks2.html
+	(License: CC Attribution-Noncommercial-No Derivate 3.0)
 
 
