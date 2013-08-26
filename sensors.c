@@ -6,6 +6,7 @@ static GtkWidget 	*ld[MAXNCPU][6]; 	/* array of gtk_labels with refreshing data 
 static long		cp_last[MAXNCPU*CP_STATES]; /* saved kern.cp_times values */
 
 static gboolean		window_hidden; 		/* main window status */
+static GtkStatusIcon 	**iconp; 		/* pointer to icon object */
 
 
 typedef struct s_usage {
@@ -19,6 +20,7 @@ typedef struct s_usage {
 
 
 
+static void update_tooltip(const gchar *);
 
 
 static int
@@ -150,7 +152,7 @@ update_freq(const int *cpu)
 	char 		sbuf[15];
 	GtkWidget	*widget;
 
-	widget = ld[*cpu][FREQ]; /* we always take frequency value from cpu0*/
+	widget = ld[*cpu][FREQ]; /* we always take frequency value from cpu0 */
 
 	if ((freq=get_freq(*cpu)) > 0){
 		
@@ -178,6 +180,7 @@ update_temp(const int *cpu)
 	if ((temp = get_temp(*cpu)) > 0){
 		snprintf(sbuf, sizeof(sbuf), "%.1f C", temp);
 		gtk_label_set_markup(GTK_LABEL(widget), sbuf);
+		update_tooltip(sbuf);
   		return TRUE;
 	}else{
 		snprintf(sbuf, sizeof(sbuf), ERRLABEL);
@@ -236,43 +239,20 @@ update_cpu_usage(const int *cpu)
 
 
 
-
-
-
-
-
 static void
-do_drawing(cairo_t *cr)
+update_tooltip(const gchar *string)
 {
-	int 	freq;
-	char 	strfreq[15];
 
-	if ((freq=get_freq(1)) <= 0){
-		g_print("freq get error\n");
-		return;
+	GError *error = NULL;
+
+	if (*iconp){
+		gtk_status_icon_set_tooltip_text(GTK_STATUS_ICON(*iconp), string);
+	}else{
+	      fprintf(stderr, "%s\n", error->message);
+	      g_error_free(error);
+
 	}
-
-	snprintf(strfreq, sizeof(strfreq), "Freq: %d", freq);
-	
-	cairo_set_source_rgb(cr, 0,0,0);
-	cairo_rectangle(cr, 10,10,250,60);
-	cairo_fill(cr);
-
-	cairo_set_source_rgb(cr, 255,255,255);
-	cairo_select_font_face(cr, "Serif", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-	cairo_set_font_size(cr, 30.0);
-
-	cairo_move_to(cr, 10.0, 40.0);
-	cairo_show_text(cr, strfreq);
-
 }
-
-
-
-
-
-
-
 
 
 
@@ -280,20 +260,6 @@ do_drawing(cairo_t *cr)
 
 
 /*		EVENTS			*/
-
-
-static gboolean
-on_draw_event(GtkWidget *widget )
-{
-	cairo_t *cr;
-
-	cr = gdk_cairo_create(gtk_widget_get_window(widget));
-	do_drawing(cr);
-	cairo_destroy(cr);
-
-	return TRUE;
-}
-
 
 
 static gboolean
@@ -320,14 +286,14 @@ window_state_event(GtkWidget *window, GdkEventWindowState *event, gpointer icon)
 	if (event->changed_mask == GDK_WINDOW_STATE_ICONIFIED && (event->new_window_state == GDK_WINDOW_STATE_ICONIFIED || event->new_window_state == (GDK_WINDOW_STATE_ICONIFIED | GDK_WINDOW_STATE_MAXIMIZED))){
 		/* gtk_window_set_skip_pager_hint(GTK_WINDOW(window), TRUE); */
 		gtk_window_set_skip_taskbar_hint(GTK_WINDOW(window), TRUE);
-		g_print("hide \n");
+		/* g_print("hide \n"); */
 		window_hidden = TRUE;
 
 	}else if (event->changed_mask == GDK_WINDOW_STATE_ICONIFIED && (event->new_window_state != GDK_WINDOW_STATE_ICONIFIED )){
 		
 		/* gtk_window_set_skip_pager_hint(GTK_WINDOW(window), FALSE); */
 		gtk_window_set_skip_taskbar_hint(GTK_WINDOW(window), FALSE);
-		g_print("show\n");
+		/* g_print("show\n"); */
 		window_hidden = FALSE;
 	}
 
@@ -342,7 +308,7 @@ window_state_event(GtkWidget *window, GdkEventWindowState *event, gpointer icon)
 static gboolean
 delete_event (GtkWidget *widget, GdkEvent *event, gpointer data)
 {
-	g_print("detele event\n");
+	/* g_print("detele event\n"); */
 	return FALSE;
 }
 
@@ -356,6 +322,22 @@ destroy (GtkWidget *widget, gpointer data)
 }
 
 
+
+
+static GdkPixbuf *create_pixbuf(const gchar *filename)
+{
+	GdkPixbuf *pixbuf;
+	GError *error = NULL;
+
+	pixbuf = gdk_pixbuf_new_from_file(filename, &error);
+
+ 	if(!pixbuf) {
+	      fprintf(stderr, "%s\n", error->message);
+	      g_error_free(error);
+	}
+
+   return pixbuf;
+}
 
 
 
@@ -372,8 +354,6 @@ int main (int argc, char *argv[])
 	char 	label[16]; /* cpu name holder */
 	GtkWidget *window;
 	GtkWidget *button;
-	GtkWidget *button2;
-	GtkWidget *darea;
 	GtkWidget *table;
 	GtkWidget *label1;
 	GtkWidget *label2;
@@ -381,11 +361,13 @@ int main (int argc, char *argv[])
 	GtkWidget *label4;
 	GtkWidget *label5;
 	GtkWidget *label6;
-	GtkStatusIcon *icon;
+	GtkStatusIcon 	*icon;
+	GdkPixbuf	*icopixbuf;
 
 
 
-	if ((ncpu = get_num_cpu()) < 0){ /* get a number of cpus in a system */
+
+	if ((ncpu = get_num_cpu()) < 0) { /* get a number of cpus in a system */
 		fprintf(stderr,"Cannot count ncpu\n");
 		exit(1);
 	}
@@ -489,38 +471,30 @@ int main (int argc, char *argv[])
 
 
 		/* BUTTONS */
-		/*button = gtk_button_new_with_label ("Draw");
-		gtk_widget_set_size_request(button, 70, 30);*/
-		button2 = gtk_button_new_with_label ("Hide");
-		gtk_widget_set_size_request(button2, 70, 30);
-		/* g_signal_connect(button, "clicked", G_CALLBACK(on_draw_event), NULL); */
-		g_signal_connect(button2, "clicked",GTK_SIGNAL_FUNC(status_icon_click), G_OBJECT(window));
-		/* gtk_table_attach_defaults(GTK_TABLE(table),button, 5, 6, ncpu+1, ncpu+2); */
-		gtk_table_attach_defaults(GTK_TABLE(table),button2, 7, 8, ncpu+1, ncpu+2);
+		button = gtk_button_new_with_label ("Hide");
+		gtk_widget_set_size_request(button, 70, 30);
+		g_signal_connect(button, "clicked",GTK_SIGNAL_FUNC(status_icon_click), G_OBJECT(window));
+		gtk_table_attach_defaults(GTK_TABLE(table),button, 7, 8, ncpu+1, ncpu+2);
 
 
 	gtk_container_add(GTK_CONTAINER(window), table);
 
 
 
-	/* DRAWAREA */
-	/*darea = gtk_drawing_area_new();
-	gtk_box_pack_start(GTK_BOX(vbox), darea, TRUE, TRUE, 0);	*/
-
-	/*g_signal_connect(G_OBJECT(darea), "expose-event", G_CALLBACK(on_draw_event), NULL);*/
-
-
-
-
-
 
 
 	/* ICON */
-	icon = gtk_status_icon_new_from_stock(GTK_STOCK_OPEN);
-	gtk_status_icon_set_tooltip(GTK_STATUS_ICON(icon), PROGNAME);
+	icopixbuf = create_pixbuf(ICONFILE);
+	icon = gtk_status_icon_new_from_pixbuf(icopixbuf);
+	iconp = &icon;
 
 	g_signal_connect(GTK_STATUS_ICON(icon), "activate", GTK_SIGNAL_FUNC(status_icon_click), G_OBJECT(window));
 	g_signal_connect(G_OBJECT(window), "window-state-event", G_CALLBACK(window_state_event), G_OBJECT(icon));
+
+	gtk_status_icon_set_tooltip(GTK_STATUS_ICON(icon), PROGNAME);
+	gtk_window_set_icon(GTK_WINDOW(window), icopixbuf);
+
+
 
 
 
@@ -534,7 +508,7 @@ int main (int argc, char *argv[])
 
 	refresh = (refresh <= 0 || refresh > MAXREFRESH)? REFRESH : refresh;
 
-	printf("refresh every %d seconds\n", refresh);
+	printf("refreshing every %d seconds\n", refresh);
 
 	 /* we need to pass a pointer to a variable containing cpu number in ld[] array, for updating widgets */
 	for (i=0; i != ncpu; i++){ /* set watchdogs for each cpu */
@@ -545,20 +519,10 @@ int main (int argc, char *argv[])
 		wd_cpu_usage[i] = g_timeout_add_seconds(refresh, (GSourceFunc)update_cpu_usage, &j[i]);
 	}
 
-
-
-
-
 	gtk_widget_show_all(window);
-
-
 	gtk_main();
 
-
 	return 0;
-
-
-
 }
 
 

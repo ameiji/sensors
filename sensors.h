@@ -12,6 +12,7 @@
 
 #define PROGNAME "SENSORS"
 
+#define ICONFILE "/usr/local/share/sensors/icons/cpu.png"
 
 #define REFRESH 3 	/* default refresh time,  sec. */
 #define MAXREFRESH 3600 /* max refresh time, sec. */

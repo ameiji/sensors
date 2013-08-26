@@ -13,9 +13,6 @@ GTK_FLAGS = `pkg-config --libs --cflags gtk+-2.0`
 
 CFLAGS += ${BDECFLAGS} ${GTK_FLAGS}
 
-INSTALL_DIR = /usr/local/bin
-
-
 .include <bsd.prog.mk>
 
 
